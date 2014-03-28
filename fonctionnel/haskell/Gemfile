@@ -1,0 +1,7 @@
+source "http://rubygems.org"
+
+gem 'guard-shell'
+gem 'rb-kqueue', '>= 0.2'
+gem 'rb-inotify', :require => false
+gem 'rb-fsevent', :require => false
+gem 'rb-fchange', :require => false
