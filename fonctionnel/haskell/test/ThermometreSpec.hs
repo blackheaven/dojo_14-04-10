@@ -21,12 +21,12 @@ spec = do
                     Fahrenheit 2.0 `shouldBe` Fahrenheit 2.0
                 it "different" $ do
                     (Fahrenheit 4.0 == Fahrenheit 2.0) `shouldBe` False
-            describe "Fahrenheit then Celius" $ do
+            describe "Fahrenheit then Celcius" $ do
                 it "same" $ do
                     Fahrenheit 100.0 `shouldBe` Celcius 38.0
                 it "different" $ do
                     (Fahrenheit 100.0 == Celcius 2.0) `shouldBe` False
-            describe "Celius then Fahrenheit" $ do
+            describe "Celcius then Fahrenheit" $ do
                 it "same" $ do
                     Celcius 38.0 `shouldBe` Fahrenheit 100.0
                 it "different" $ do
@@ -74,3 +74,9 @@ spec = do
             celciusAcc (fold (map temperatureToStatistics [Celcius 2.0, Celcius 4.0])) `shouldBe` Celcius 6.0
         it "fahrenheitAcc" $ do
             fahrenheitAcc (fold (map temperatureToStatistics [Celcius 2.0, Celcius 4.0])) `shouldBe` Fahrenheit 32.0
+
+    describe "montlyEvenWeeklyMondayMorningStats" $ do
+        it "Count 2 months" $ do
+            celciusAcc (montlyEvenWeeklyMondayMorningStats (replicate 2
+                       (MonthStmt (replicate 4 (WeekStmt $ replicate 7 (DayStmt
+                       [Celcius 1.0, Fahrenheit  42.0])))))) `shouldBe` Celcius 4.0

@@ -6,11 +6,13 @@ module Thermometre (
         , Statistics(..)
         , temperatureToStatistics
         , avg
-        , FilterPosition
-        , filterStats
+        , filterByPosition
+        , montlyEvenWeeklyMondayMorningStats
         )  where
 
 import Data.Monoid
+import Data.Foldable
+import Control.Monad
 
 data Temperature = Celcius { getVal :: Float }
                  | Fahrenheit { getVal :: Float } deriving (Show)
@@ -69,13 +71,26 @@ instance Monoid Statistics where
         mempty = Statistics 0 (Celcius 1000.0) (Celcius (-1000.0)) (Celcius 0.0) (Fahrenheit 32.0)
         mappend (Statistics a b c (Celcius d) (Fahrenheit e)) (Statistics a' b' c' (Celcius d') (Fahrenheit e')) = Statistics (a + a') (min b b') (max c c') (Celcius (d + d')) (Fahrenheit (e + e'))
 
-type FilterPosition = Int -> Bool
-filterStats :: FilterPosition -> [a] -> [a]
-filterStats f = map snd . filter (f . fst) . zip [1..]
+filterByPosition :: (Int -> Bool) -> [a] -> [a]
+filterByPosition f = map snd . filter (f . fst) . zip [1..]
 
--- fmap (filter ...) -- filter month
--- fmap . fmap -- filter weeks
--- fmap . fmap . fmap -- filter day
--- make*/unmake* => comonad/typeclass
--- Flattable
--- Foldable
+montlyEvenWeeklyMondayMorningStats :: [MonthStmt] -> Statistics
+montlyEvenWeeklyMondayMorningStats = fold . map temperatureToStatistics . join . map (map (morning . head . inspectW) . filterByPosition even . inspectM)
+
+
+-- {-# LANGUAGE MultiParamTypeClasses #-}
+-- class Inspectable c r | c -> r where
+--         inspect :: c -> r
+
+-- instance Inspectable DayStmt [Temperature] where
+--         inspect (DayStmt c) = c
+
+-- instance Inspectable WeekStmt [DayStmt] where
+--         inspect (WeekStmt c) = c
+
+-- instance Inspectable MonthStmt [WeekStmt] where
+--         inspect (DayStmt c) = c
+inspectW :: WeekStmt -> [DayStmt]
+inspectW (WeekStmt c) = c
+inspectM :: MonthStmt -> [WeekStmt]
+inspectM (MonthStmt c) = c
