@@ -1,3 +1,5 @@
+{-# Language TemplateHaskell #-}
+
 module Thermometre (
           Temperature(..)
         , DayStmt(..), morning, evening, makeDayStmt
@@ -13,9 +15,12 @@ module Thermometre (
 import Data.Monoid
 import Data.Foldable
 import Control.Monad
+import Control.Lens
 
-data Temperature = Celcius { getVal :: Float }
-                 | Fahrenheit { getVal :: Float } deriving (Show)
+data Temperature = Celcius { _value :: Float }
+                 | Fahrenheit { _value :: Float } deriving (Show)
+
+makeLenses ''Temperature
 
 instance Eq Temperature where
         (Celcius a) == (Celcius b) = abs (a - b) < 0.1
@@ -37,8 +42,10 @@ morning :: DayStmt -> Temperature
 morning (DayStmt ts) = head ts
 evening :: DayStmt -> Temperature
 evening (DayStmt ts) = head $ tail ts
-data WeekStmt = WeekStmt [DayStmt] deriving (Show, Eq)
-data MonthStmt = MonthStmt [WeekStmt] deriving (Show, Eq)
+data WeekStmt = WeekStmt { _days :: [DayStmt] } deriving (Show, Eq)
+makeLenses ''WeekStmt
+data MonthStmt = MonthStmt { _weeks ::[WeekStmt] } deriving (Show, Eq)
+makeLenses ''MonthStmt
 
 makeDayStmt :: [Temperature] -> [DayStmt]
 makeDayStmt = map DayStmt . group 2
@@ -65,7 +72,7 @@ temperatureToStatistics t@(Fahrenheit _) = Statistics 1 t t (Celcius 0) t
 temperatureToStatistics t@(Celcius _) = Statistics 1 t t t (Fahrenheit 0)
 
 avg :: Statistics -> Temperature
-avg s = Celcius $ (getVal (celciusAcc  s) + fahrenheitToCelcius (getVal (fahrenheitAcc  s))) / fromIntegral (cardinal s)
+avg s = Celcius $ (view value (celciusAcc  s) + fahrenheitToCelcius (view value (fahrenheitAcc  s))) / fromIntegral (cardinal s)
 
 instance Monoid Statistics where
         mempty = Statistics 0 (Celcius 1000.0) (Celcius (-1000.0)) (Celcius 0.0) (Fahrenheit 32.0)
@@ -75,22 +82,5 @@ filterByPosition :: (Int -> Bool) -> [a] -> [a]
 filterByPosition f = map snd . filter (f . fst) . zip [1..]
 
 montlyEvenWeeklyMondayMorningStats :: [MonthStmt] -> Statistics
-montlyEvenWeeklyMondayMorningStats = fold . map temperatureToStatistics . join . map (map (morning . head . inspectW) . filterByPosition even . inspectM)
+montlyEvenWeeklyMondayMorningStats = fold . map temperatureToStatistics . join . map (map (morning . head . view days) . filterByPosition even . view weeks)
 
-
--- {-# LANGUAGE MultiParamTypeClasses #-}
--- class Inspectable c r | c -> r where
---         inspect :: c -> r
-
--- instance Inspectable DayStmt [Temperature] where
---         inspect (DayStmt c) = c
-
--- instance Inspectable WeekStmt [DayStmt] where
---         inspect (WeekStmt c) = c
-
--- instance Inspectable MonthStmt [WeekStmt] where
---         inspect (DayStmt c) = c
-inspectW :: WeekStmt -> [DayStmt]
-inspectW (WeekStmt c) = c
-inspectM :: MonthStmt -> [WeekStmt]
-inspectM (MonthStmt c) = c

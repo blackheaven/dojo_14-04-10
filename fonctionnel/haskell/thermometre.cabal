@@ -18,6 +18,7 @@ library
       Thermometre
   build-depends:
       base    == 4.*
+    , lens    >= 4.1
 
 test-suite spec
   type:
