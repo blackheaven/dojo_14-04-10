@@ -11,47 +11,30 @@ spec :: Spec
 spec = do
     describe "Temperature datatype" $ do
         describe "Eq instance" $ do
-            describe "Both Celcius" $ do
-                it "same" $ do
+            describe "Given both Celcius values" $ do
+                it "when values are the same then should be equal" $ do
                     Celcius 2.0 `shouldBe` Celcius 2.0
-                it "different" $ do
+                it "when values are different then should be different" $ do
                     (Celcius 4.0 == Celcius 2.0) `shouldBe` False
-            describe "Both Fahrenheit" $ do
-                it "same" $ do
+            describe "Given both Fahrenheit values" $ do
+                it "when values are the same then should be equal" $ do
                     Fahrenheit 2.0 `shouldBe` Fahrenheit 2.0
-                it "different" $ do
+                it "when values are different then should be different" $ do
                     (Fahrenheit 4.0 == Fahrenheit 2.0) `shouldBe` False
-            describe "Fahrenheit then Celcius" $ do
-                it "same" $ do
+            describe "Given Fahrenheit then Celcius values" $ do
+                it "when values are equivalent then should be equal" $ do
                     Fahrenheit 100.0 `shouldBe` Celcius 38.0
-                it "different" $ do
+                it "when values are not equivalent then should be different" $ do
                     (Fahrenheit 100.0 == Celcius 2.0) `shouldBe` False
-            describe "Celcius then Fahrenheit" $ do
-                it "same" $ do
+            describe "Given Celcius then Fahrenheit values" $ do
+                it "when values are equivalent then should be equal" $ do
                     Celcius 38.0 `shouldBe` Fahrenheit 100.0
-                it "different" $ do
+                it "when values are not equivalent then should be different" $ do
                     (Celcius 2.0 == Fahrenheit 100.0) `shouldBe` False
 
-    describe "Statistics" $ do
-        it "coldest" $ do
-            coldest (fold (map temperatureToStatistics [Celcius 2.0, Celcius 4.0])) `shouldBe` Celcius 2.0
-        it "hotest" $ do
-            hotest (fold (map temperatureToStatistics [Celcius 2.0, Celcius 4.0])) `shouldBe` Celcius 4.0
-        it "avg" $ do
-            avg (fold (map temperatureToStatistics [Celcius 2.0, Celcius 4.0])) `shouldBe` Celcius 3.0
-        it "cardinal" $ do
-            cardinal (fold (map temperatureToStatistics [Celcius 2.0, Celcius 4.0])) `shouldBe` 2
-        it "celciusAcc" $ do
-            celciusAcc (fold (map temperatureToStatistics [Celcius 2.0, Celcius 4.0])) `shouldBe` Celcius 6.0
-        it "fahrenheitAcc" $ do
-            fahrenheitAcc (fold (map temperatureToStatistics [Celcius 2.0, Celcius 4.0])) `shouldBe` Fahrenheit 32.0
-
     describe "montlyEvenWeeklyMondayMorningStats" $ do
-        it "Count 2 months" $ do
-            celciusAcc (montlyEvenWeeklyMondayMorningStats . makeMonthStmt
-                       . makeWeekStmt $ replicate 56 (DayStmt (Just $ Celcius 1.0)
-                       (Just $ Celcius 42.0))) `shouldBe` Celcius 8.0
-        it "card 2 months" $ do
-            cardinal (montlyEvenWeeklyMondayMorningStats . makeMonthStmt
-                       . makeWeekStmt $ replicate 56 (DayStmt (Just $ Celcius 1.0)
-                       (Just $ Celcius 42.0))) `shouldBe` 8
+        describe "celcius" $ do
+            it "Given 2 months minus one week when all morning have 1°C then should be equal to 3°C" $ do
+                celciusAcc (montlyEvenWeeklyMondayMorningStats . makeMonthStmt
+                           . makeWeekStmt $ replicate 49 (DayStmt (Just $ Celcius 1.0)
+                           (Just $ Celcius 42.0))) `shouldBe` Celcius 3.0
