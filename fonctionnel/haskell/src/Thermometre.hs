@@ -2,20 +2,22 @@
 
 module Thermometre (
           Temperature(..)
-        , DayStmt(..), morning, evening, makeDayStmt
+        , DayStmt(..), makeDayStmt
         , WeekStmt(..), makeWeekStmt
         , MonthStmt(..), makeMonthStmt
         , Statistics(..)
         , temperatureToStatistics
         , avg
-        , filterByPosition
         , montlyEvenWeeklyMondayMorningStats
         )  where
 
 import Data.Monoid
 import Data.Foldable
+import Data.Maybe
 import Control.Monad
+import Control.Applicative
 import Control.Lens
+import Control.Lens.Cons
 
 data Temperature = Celcius { _value :: Float }
                  | Fahrenheit { _value :: Float } deriving (Show)
@@ -37,24 +39,39 @@ instance Ord Temperature where
 fahrenheitToCelcius :: Float -> Float
 fahrenheitToCelcius f = (f - 32.0) / 1.8
 
-data DayStmt = DayStmt [Temperature] deriving (Show, Eq)
-morning :: DayStmt -> Temperature
-morning (DayStmt ts) = head ts
-evening :: DayStmt -> Temperature
-evening (DayStmt ts) = head $ tail ts
-data WeekStmt = WeekStmt { _days :: [DayStmt] } deriving (Show, Eq)
+data DayStmt = DayStmt { _morning :: Maybe Temperature
+                       , _evening :: Maybe Temperature
+                       } deriving (Show, Eq)
+makeLenses ''DayStmt
+
+data WeekStmt = WeekStmt { _monday    :: Maybe DayStmt
+                         , _thuesday  :: Maybe DayStmt
+                         , _wednesday :: Maybe DayStmt
+                         , _thursday  :: Maybe DayStmt
+                         , _friday    :: Maybe DayStmt
+                         , _saturday  :: Maybe DayStmt
+                         , _sunday    :: Maybe DayStmt
+                         } deriving (Show, Eq)
 makeLenses ''WeekStmt
-data MonthStmt = MonthStmt { _weeks ::[WeekStmt] } deriving (Show, Eq)
+
+data MonthStmt = MonthStmt { _first  :: Maybe WeekStmt
+                           , _second :: Maybe WeekStmt
+                           , _third  :: Maybe WeekStmt
+                           , _forth  :: Maybe WeekStmt
+                           } deriving (Show, Eq)
 makeLenses ''MonthStmt
 
 makeDayStmt :: [Temperature] -> [DayStmt]
-makeDayStmt = map DayStmt . group 2
+makeDayStmt = map mk . group 2
+    where mk g = DayStmt (g ^? _head) (g ^? _tail . _head)
 
 makeWeekStmt :: [DayStmt] -> [WeekStmt]
-makeWeekStmt = map WeekStmt . group 7
+makeWeekStmt = map mk . group 7
+    where mk g = WeekStmt (g ^? _head) (g ^? _tail . _head) (g ^? _tail . _tail . _head) (g ^? _tail . _tail . _tail . _head) (g ^? _tail . _tail . _tail . _tail . _head) (g ^? _tail . _tail . _tail . _tail . _tail . _head) (g ^? _tail . _tail . _tail . _tail . _tail . _tail . _head)
 
 makeMonthStmt :: [WeekStmt] -> [MonthStmt]
-makeMonthStmt = map MonthStmt . group 4
+makeMonthStmt = map mk . group 4
+    where mk g = MonthStmt (g ^? _head) (g ^? _tail . _head) (g ^? _tail . _tail . _head) (g ^? _tail . _tail . _tail . _head)
 
 group :: Int -> [a] -> [[a]]
 group _ [] = []
@@ -78,9 +95,8 @@ instance Monoid Statistics where
         mempty = Statistics 0 (Celcius 1000.0) (Celcius (-1000.0)) (Celcius 0.0) (Fahrenheit 32.0)
         mappend (Statistics a b c (Celcius d) (Fahrenheit e)) (Statistics a' b' c' (Celcius d') (Fahrenheit e')) = Statistics (a + a') (min b b') (max c c') (Celcius (d + d')) (Fahrenheit (e + e'))
 
-filterByPosition :: (Int -> Bool) -> [a] -> [a]
-filterByPosition f = map snd . filter (f . fst) . zip [1..]
-
 montlyEvenWeeklyMondayMorningStats :: [MonthStmt] -> Statistics
-montlyEvenWeeklyMondayMorningStats = fold . map temperatureToStatistics . join . map (map (morning . head . view days) . filterByPosition even . view weeks)
+montlyEvenWeeklyMondayMorningStats = fold . map temperatureToStatistics . mapMaybe mondayMornings . evenWeeks
+    where evenWeeks w = catMaybes $ [view second, view forth] <*> w
+          mondayMornings d = view monday d >>= view morning
 

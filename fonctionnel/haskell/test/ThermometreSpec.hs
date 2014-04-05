@@ -32,35 +32,6 @@ spec = do
                 it "different" $ do
                     (Celcius 2.0 == Fahrenheit 100.0) `shouldBe` False
 
-    describe "DayStmt datatype" $ do
-        it "morning" $ do
-            morning (DayStmt [(Celcius 2.0), (Celcius 4.0)]) `shouldBe` Celcius 2.0
-        it "evening" $ do
-            evening (DayStmt [(Celcius 2.0), (Celcius 4.0)]) `shouldBe` Celcius 4.0
-
-    describe "makeDayStmt" $ do
-        it "one day" $ do
-            makeDayStmt [(Celcius 2.0), (Celcius 4.0)] `shouldBe` [DayStmt [(Celcius 2.0), (Celcius 4.0)]]
-        it "two days" $ do
-            makeDayStmt [(Celcius 2.0), (Celcius 4.0)
-                        , (Celcius 3.0), (Celcius 6.0)] `shouldBe` [
-                          DayStmt [(Celcius 2.0), (Celcius 4.0)]
-                        , DayStmt [(Celcius 3.0), (Celcius 6.0)]]
-
-    describe "makeWeekStmt" $ do
-        it "one week" $ do
-            makeWeekStmt (replicate 2 (DayStmt [])) `shouldBe` [WeekStmt [DayStmt [], DayStmt []]]
-        it "two weeks" $ do
-            makeWeekStmt (replicate 10 (DayStmt [])) `shouldBe` [
-                        WeekStmt (replicate 7 (DayStmt [])), WeekStmt (replicate 3 (DayStmt []))]
-
-    describe "makeMonthStmt" $ do
-        it "one month" $ do
-            makeMonthStmt (replicate 2 (WeekStmt [])) `shouldBe` [MonthStmt [WeekStmt [], WeekStmt []]]
-        it "two months" $ do
-            makeMonthStmt (replicate 7 (WeekStmt [])) `shouldBe` [
-                        MonthStmt (replicate 4 (WeekStmt [])), MonthStmt (replicate 3 (WeekStmt []))]
-
     describe "Statistics" $ do
         it "coldest" $ do
             coldest (fold (map temperatureToStatistics [Celcius 2.0, Celcius 4.0])) `shouldBe` Celcius 2.0
@@ -77,6 +48,10 @@ spec = do
 
     describe "montlyEvenWeeklyMondayMorningStats" $ do
         it "Count 2 months" $ do
-            celciusAcc (montlyEvenWeeklyMondayMorningStats (replicate 2
-                       (MonthStmt (replicate 4 (WeekStmt $ replicate 7 (DayStmt
-                       [Celcius 1.0, Fahrenheit  42.0])))))) `shouldBe` Celcius 4.0
+            celciusAcc (montlyEvenWeeklyMondayMorningStats . makeMonthStmt
+                       . makeWeekStmt $ replicate 56 (DayStmt (Just $ Celcius 1.0)
+                       (Just $ Celcius 42.0))) `shouldBe` Celcius 8.0
+        it "card 2 months" $ do
+            cardinal (montlyEvenWeeklyMondayMorningStats . makeMonthStmt
+                       . makeWeekStmt $ replicate 56 (DayStmt (Just $ Celcius 1.0)
+                       (Just $ Celcius 42.0))) `shouldBe` 8
