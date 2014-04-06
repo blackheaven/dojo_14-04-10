@@ -35,14 +35,14 @@ spec = do
     describe "morningStats" $ do
         describe "celcius" $ do
             it "Given 10 days when all morning have 1°C then should be equal to 10°C" $ do
-                celciusAcc (morningStats . makeMonthStmt
+                celciusAcc (getStats mornings . makeMonthStmt
                            . makeWeekStmt $ replicate 10 (DayStmt (Just $ Celcius 1.0)
                            (Just $ Celcius 42.0))) `shouldBe` Celcius 10.0
 
     describe "eveningStats" $ do
         describe "celcius" $ do
             it "Given 10 days when all evening have 42°C then should be equal to 420°C" $ do
-                celciusAcc (eveningStats . makeMonthStmt
+                celciusAcc (getStats evenings . makeMonthStmt
                            . makeWeekStmt $ replicate 10 (DayStmt (Just $ Celcius 1.0)
                            (Just $ Celcius 42.0))) `shouldBe` Celcius 420.0
 
