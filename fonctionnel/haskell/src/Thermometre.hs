@@ -24,13 +24,10 @@ import Data.Maybe
 import Data.List (intersect)
 import Control.Monad
 import Control.Applicative
-import Control.Lens
-import Control.Lens.Cons
 
-data Temperature = Celcius { _value :: Float }
-                 | Fahrenheit { _value :: Float } deriving (Show)
+data Temperature = Celcius { value :: Float }
+                 | Fahrenheit { value :: Float } deriving (Show)
 
-makeLenses ''Temperature
 
 instance Eq Temperature where
         (Celcius a) == (Celcius b) = abs (a - b) < 0.1
@@ -47,43 +44,40 @@ instance Ord Temperature where
 fahrenheitToCelcius :: Float -> Float
 fahrenheitToCelcius f = (f - 32.0) / 1.8
 
-data DayStmt = DayStmt { _morning :: Maybe Temperature
-                       , _evening :: Maybe Temperature
+data DayStmt = DayStmt { morning :: Maybe Temperature
+                       , evening :: Maybe Temperature
                        } deriving (Show, Eq)
-makeLenses ''DayStmt
 
-data WeekStmt = WeekStmt { _monday    :: Maybe DayStmt
-                         , _thuesday  :: Maybe DayStmt
-                         , _wednesday :: Maybe DayStmt
-                         , _thursday  :: Maybe DayStmt
-                         , _friday    :: Maybe DayStmt
-                         , _saturday  :: Maybe DayStmt
-                         , _sunday    :: Maybe DayStmt
+data WeekStmt = WeekStmt { monday    :: Maybe DayStmt
+                         , thuesday  :: Maybe DayStmt
+                         , wednesday :: Maybe DayStmt
+                         , thursday  :: Maybe DayStmt
+                         , friday    :: Maybe DayStmt
+                         , saturday  :: Maybe DayStmt
+                         , sunday    :: Maybe DayStmt
                          } deriving (Show, Eq)
-makeLenses ''WeekStmt
 
-data MonthStmt = MonthStmt { _first  :: Maybe WeekStmt
-                           , _second :: Maybe WeekStmt
-                           , _third  :: Maybe WeekStmt
-                           , _forth  :: Maybe WeekStmt
+data MonthStmt = MonthStmt { first  :: Maybe WeekStmt
+                           , second :: Maybe WeekStmt
+                           , third  :: Maybe WeekStmt
+                           , forth  :: Maybe WeekStmt
                            } deriving (Show, Eq)
-makeLenses ''MonthStmt
 
 makeDayStmt :: [Temperature] -> [DayStmt]
 makeDayStmt = map mk . group 2
-    where mk g = DayStmt (g ^? _head) (g ^? _tail . _head)
+    where mk g = DayStmt (g !! 0) (g !! 1)
 
 makeWeekStmt :: [DayStmt] -> [WeekStmt]
 makeWeekStmt = map mk . group 7
-    where mk g = WeekStmt (g ^? _head) (g ^? _tail . _head) (g ^? _tail . _tail . _head) (g ^? _tail . _tail . _tail . _head) (g ^? _tail . _tail . _tail . _tail . _head) (g ^? _tail . _tail . _tail . _tail . _tail . _head) (g ^? _tail . _tail . _tail . _tail . _tail . _tail . _head)
+    where mk g = WeekStmt (g !! 0) (g !! 1) (g !! 2) (g !! 3) (g !! 4) (g !! 5) (g !! 6)
 
 makeMonthStmt :: [WeekStmt] -> [MonthStmt]
 makeMonthStmt = map mk . group 4
-    where mk g = MonthStmt (g ^? _head) (g ^? _tail . _head) (g ^? _tail . _tail . _head) (g ^? _tail . _tail . _tail . _head)
+    where mk g = MonthStmt (g !! 0) (g !! 1) (g !! 2) (g !! 3)
 
-group :: Int -> [a] -> [[a]]
+group :: Int -> [a] -> [[Maybe a]]
 group _ [] = []
-group n l = take n l : group n (drop n l)
+group n l = ((map Just $ take n l) ++ replicate n Nothing) : group n (drop n l)
 
 data Statistics = Statistics { cardinal :: Int
                              , coldest :: Temperature
@@ -99,7 +93,7 @@ makeStatistics d = Statistics (length d) (minimum d) (maximum d) cAcc fAcc
           dispatchAcc (c, Fahrenheit f) (Fahrenheit n) = (c, Fahrenheit (f + n))
 
 avg :: Statistics -> Temperature
-avg s = Celcius $ (view value (celciusAcc  s) + fahrenheitToCelcius (view value (fahrenheitAcc  s))) / fromIntegral (cardinal s)
+avg s = Celcius $ (value (celciusAcc s) + fahrenheitToCelcius (value (fahrenheitAcc s))) / fromIntegral (cardinal s)
 
 -- Extractor
 data Extractor = Extractor (MonthStmt -> [WeekStmt]) (WeekStmt -> [DayStmt]) (DayStmt -> [Temperature])
@@ -118,18 +112,18 @@ getStats :: Extractor -> [MonthStmt] -> Statistics
 getStats f = makeStatistics . extract f
 
 allWeeksF :: MonthStmt -> [WeekStmt]
-allWeeksF w = catMaybes [view first w, view second w, view third w, view forth w]
+allWeeksF w = catMaybes $ [first, second, third, forth] <*> pure w
 
 allDaysF :: WeekStmt -> [DayStmt]
-allDaysF d = catMaybes [view monday d, view thuesday d, view wednesday d, view thursday d, view friday d, view saturday d, view sunday d]
+allDaysF d = catMaybes $ [monday, thuesday, wednesday, thursday, friday, saturday, sunday] <*> pure d
 
 allTemperaturesF :: DayStmt -> [Temperature]
-allTemperaturesF t = catMaybes [view morning t, view evening t]
+allTemperaturesF t = catMaybes $ [morning, evening] <*> pure t
 
 -- Groupers
 weeklyStats :: Extractor -> [MonthStmt] -> [Statistics]
 weeklyStats e d = map ((\f -> getStats f d) . filterByMonth) [first, second, third, forth]
-    where filterByMonth m = Extractor (\w -> catMaybes [view m w]) allDaysF allTemperaturesF `mappend` e
+    where filterByMonth m = Extractor (\w -> catMaybes [m w]) allDaysF allTemperaturesF `mappend` e
 
 monthlyStats :: Extractor -> [MonthStmt] -> [Statistics]
 monthlyStats e = map (\m -> getStats e [m])
@@ -140,19 +134,19 @@ allTemperatures = Extractor allWeeksF allDaysF allTemperaturesF
 
 mornings :: Extractor
 mornings = Extractor allWeeksF allDaysF filterTemperatures
-    where filterTemperatures t = catMaybes [view morning t]
+    where filterTemperatures t = maybeToList $ morning t
 
 evenings :: Extractor
 evenings = Extractor allWeeksF allDaysF filterTemperatures
-    where filterTemperatures t = catMaybes [view evening t]
+    where filterTemperatures t = maybeToList $ evening t
 
 mondays :: Extractor
 mondays = Extractor allWeeksF filterDays allTemperaturesF
-    where filterDays d = catMaybes [view monday d]
+    where filterDays d = maybeToList $ monday d
 
 evenWeeks :: Extractor
 evenWeeks = Extractor filterWeeks allDaysF allTemperaturesF
-    where filterWeeks d = catMaybes [view second d, view forth d]
+    where filterWeeks d = catMaybes [second d, forth d]
 
 evenWeeksMondayMornings :: Extractor
 evenWeeksMondayMornings = evenWeeks `mappend` mondays `mappend` mornings
