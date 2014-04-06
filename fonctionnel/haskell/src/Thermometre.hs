@@ -6,13 +6,16 @@ module Thermometre (
         , WeekStmt(..), makeWeekStmt
         , MonthStmt(..), makeMonthStmt
         , Statistics(..)
-        , temperatureToStatistics
+        , makeStatistics
         , avg
+        , morningStats
+        , eveningStats
+        , weeklyStats
+        , monthlyStats
         , montlyEvenWeeklyMondayMorningStats
         )  where
 
 import Data.Monoid
-import Data.Foldable
 import Data.Maybe
 import Control.Monad
 import Control.Applicative
@@ -84,19 +87,47 @@ data Statistics = Statistics { cardinal :: Int
                              , fahrenheitAcc :: Temperature
                              } deriving (Show, Eq)
 
-temperatureToStatistics :: Temperature -> Statistics
-temperatureToStatistics t@(Fahrenheit _) = Statistics 1 t t (Celcius 0) t
-temperatureToStatistics t@(Celcius _) = Statistics 1 t t t (Fahrenheit 0)
+makeStatistics :: [Temperature] -> Statistics
+makeStatistics d = Statistics (length d) (minimum d) (maximum d) cAcc fAcc
+    where (cAcc, fAcc) = foldl dispatchAcc (Celcius 0.0, Fahrenheit 32.0) d
+          dispatchAcc (Celcius c, f) (Celcius n) = (Celcius (c + n), f)
+          dispatchAcc (c, Fahrenheit f) (Fahrenheit n) = (c, Fahrenheit (f + n))
 
 avg :: Statistics -> Temperature
 avg s = Celcius $ (view value (celciusAcc  s) + fahrenheitToCelcius (view value (fahrenheitAcc  s))) / fromIntegral (cardinal s)
 
-instance Monoid Statistics where
-        mempty = Statistics 0 (Celcius 1000.0) (Celcius (-1000.0)) (Celcius 0.0) (Fahrenheit 32.0)
-        mappend (Statistics a b c (Celcius d) (Fahrenheit e)) (Statistics a' b' c' (Celcius d') (Fahrenheit e')) = Statistics (a + a') (min b b') (max c c') (Celcius (d + d')) (Fahrenheit (e + e'))
+data Extractor = Extractor (MonthStmt -> [WeekStmt]) (WeekStmt -> [DayStmt]) (DayStmt -> [Temperature])
+
+extract :: Extractor -> [MonthStmt] -> [Temperature]
+extract (Extractor m w d) = concatMap d . concatMap w . concatMap m
+
+getStats :: Extractor -> [MonthStmt] -> Statistics
+getStats f = makeStatistics . extract f
+
+allWeeks :: MonthStmt -> [WeekStmt]
+allWeeks w = catMaybes [view first w, view second w, view third w, view forth w]
+allDays :: WeekStmt -> [DayStmt]
+allDays d = catMaybes [view monday d, view thuesday d, view wednesday d, view thursday d, view friday d, view saturday d, view sunday d]
+allTemperatures :: DayStmt -> [Temperature]
+allTemperatures t = catMaybes [view morning t, view evening t]
+
+morningStats :: [MonthStmt] -> Statistics
+morningStats = getStats (Extractor allWeeks allDays filterDays)
+    where filterDays t = catMaybes [view morning t]
+
+eveningStats :: [MonthStmt] -> Statistics
+eveningStats = getStats (Extractor allWeeks allDays filterDays)
+    where filterDays t = catMaybes [view evening t]
+
+weeklyStats :: [MonthStmt] -> [Statistics]
+weeklyStats d = map (\f -> getStats f d) $ map (\m -> Extractor (\w -> catMaybes [view m w]) allDays allTemperatures) [first, second, third, forth]
+
+monthlyStats :: [MonthStmt] -> [Statistics]
+monthlyStats = map (\m -> getStats (Extractor allWeeks allDays allTemperatures) [m])
 
 montlyEvenWeeklyMondayMorningStats :: [MonthStmt] -> Statistics
-montlyEvenWeeklyMondayMorningStats = fold . map temperatureToStatistics . mapMaybe mondayMornings . evenWeeks
-    where evenWeeks w = catMaybes $ [view second, view forth] <*> w
-          mondayMornings d = view monday d >>= view morning
+montlyEvenWeeklyMondayMorningStats = getStats (Extractor filterMonths filterWeeks filterDays)
+    where filterMonths w = catMaybes [view second w, view forth w]
+          filterWeeks d = catMaybes [view monday d]
+          filterDays t = catMaybes [view morning t]
 
