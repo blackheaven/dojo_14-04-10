@@ -14,11 +14,14 @@ module Thermometre (
         , allTemperatures
         , mornings
         , evenings
+        , mondays
+        , evenWeeks
         , montlyEvenWeeklyMondayMorningStats
         )  where
 
 import Data.Monoid
 import Data.Maybe
+import Data.List (intersect)
 import Control.Monad
 import Control.Applicative
 import Control.Lens
@@ -101,6 +104,13 @@ avg s = Celcius $ (view value (celciusAcc  s) + fahrenheitToCelcius (view value 
 -- Extractor
 data Extractor = Extractor (MonthStmt -> [WeekStmt]) (WeekStmt -> [DayStmt]) (DayStmt -> [Temperature])
 
+instance Monoid Extractor where
+        mempty = allTemperatures
+        mappend (Extractor w1 d1 t1) (Extractor w2 d2 t2) = Extractor (\ws -> w1 ws `unif` w2 ws) (\ds -> d1 ds `unif` d2 ds) (\ts -> t1 ts `unif` t2 ts)
+            where unif a b
+                    | length a < length b = a `intersect` b
+                    | otherwise           = b `intersect` a
+
 extract :: Extractor -> [MonthStmt] -> [Temperature]
 extract (Extractor m w d) = concatMap d . concatMap w . concatMap m
 
@@ -116,7 +126,7 @@ allDaysF d = catMaybes [view monday d, view thuesday d, view wednesday d, view t
 allTemperaturesF :: DayStmt -> [Temperature]
 allTemperaturesF t = catMaybes [view morning t, view evening t]
 
--- Groupers
+-- Groupers TODO : pass Extractor
 weeklyStats :: [MonthStmt] -> [Statistics]
 weeklyStats d = map ((\f -> getStats f d) . filterByMonth) [first, second, third, forth]
     where filterByMonth m = Extractor (\w -> catMaybes [view m w]) allDaysF allTemperaturesF
@@ -129,16 +139,21 @@ allTemperatures :: Extractor
 allTemperatures = Extractor allWeeksF allDaysF allTemperaturesF
 
 mornings :: Extractor
-mornings = Extractor allWeeksF allDaysF filterDays
-    where filterDays t = catMaybes [view morning t]
+mornings = Extractor allWeeksF allDaysF filterTemperatures
+    where filterTemperatures t = catMaybes [view morning t]
 
 evenings :: Extractor
-evenings = Extractor allWeeksF allDaysF filterDays
-    where filterDays t = catMaybes [view evening t]
+evenings = Extractor allWeeksF allDaysF filterTemperatures
+    where filterTemperatures t = catMaybes [view evening t]
+
+mondays :: Extractor
+mondays = Extractor allWeeksF filterDays allTemperaturesF
+    where filterDays d = catMaybes [view monday d]
+
+evenWeeks :: Extractor
+evenWeeks = Extractor filterWeeks allDaysF allTemperaturesF
+    where filterWeeks d = catMaybes [view second d, view forth d]
 
 montlyEvenWeeklyMondayMorningStats :: [MonthStmt] -> Statistics
-montlyEvenWeeklyMondayMorningStats = getStats (Extractor filterMonths filterWeeks filterDays)
-    where filterMonths w = catMaybes [view second w, view forth w] --monoid + stats
-          filterWeeks d = catMaybes [view monday d]
-          filterDays t = catMaybes [view morning t]
+montlyEvenWeeklyMondayMorningStats = getStats $ evenWeeks `mappend` mondays `mappend` mornings
 
