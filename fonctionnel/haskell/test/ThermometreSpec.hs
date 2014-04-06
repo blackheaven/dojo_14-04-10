@@ -72,23 +72,23 @@ spec = do
                            . makeWeekStmt $ replicate 10 (DayStmt (Just $ Celcius 1.0)
                            (Just $ Celcius 1.0))) `shouldBe` Celcius 2.0
 
-    describe "weeklyStats" $ do
+    describe "weeklyStats allTemperatures" $ do
         describe "celcius" $ do
             it "Given 10 days when all morning and evening have 1°C then should be equal to 14°C, 6°C, 0°C, 0°C" $ do
-                map celciusAcc (weeklyStats . makeMonthStmt
+                map celciusAcc (weeklyStats allTemperatures . makeMonthStmt
                            . makeWeekStmt $ replicate 10 (DayStmt (Just $ Celcius 1.0)
                            (Just $ Celcius 1.0))) `shouldBe` [Celcius 14.0, Celcius 6.0, Celcius 0.0, Celcius 0.0]
 
-    describe "monthlyStats" $ do
+    describe "monthlyStats allTemperatures" $ do
         describe "celcius" $ do
             it "Given 38 days when all morning and evening have 1°C then should be equal to 56°C, 20°C" $ do
-                map celciusAcc (monthlyStats . makeMonthStmt
+                map celciusAcc (monthlyStats allTemperatures . makeMonthStmt
                            . makeWeekStmt $ replicate 38 (DayStmt (Just $ Celcius 1.0)
                            (Just $ Celcius 1.0))) `shouldBe` [Celcius 56.0, Celcius 20.0]
 
-    describe "montlyEvenWeeklyMondayMorningStats" $ do
+    describe "monthlyStats evenWeeksMondayMornings" $ do
         describe "celcius" $ do
             it "Given 2 months minus one week when all morning have 1°C then should be equal to 3°C" $ do
-                celciusAcc (montlyEvenWeeklyMondayMorningStats . makeMonthStmt
+                map celciusAcc (monthlyStats evenWeeksMondayMornings . makeMonthStmt
                            . makeWeekStmt $ replicate 49 (DayStmt (Just $ Celcius 1.0)
-                           (Just $ Celcius 42.0))) `shouldBe` Celcius 3.0
+                           (Just $ Celcius 42.0))) `shouldBe` [Celcius 2.0, Celcius 1.0]
