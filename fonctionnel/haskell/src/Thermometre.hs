@@ -108,9 +108,6 @@ instance Monoid Extractor where
 extract :: Extractor -> [MonthStmt] -> [Temperature]
 extract (Extractor m w d) = concatMap d . concatMap w . concatMap m
 
-getStats :: Extractor -> [MonthStmt] -> Statistics
-getStats f = makeStatistics . extract f
-
 allWeeksF :: MonthStmt -> [WeekStmt]
 allWeeksF w = catMaybes $ [first, second, third, forth] <*> pure w
 
@@ -121,6 +118,9 @@ allTemperaturesF :: DayStmt -> [Temperature]
 allTemperaturesF t = catMaybes $ [morning, evening] <*> pure t
 
 -- Groupers
+getStats :: Extractor -> [MonthStmt] -> Statistics
+getStats f = makeStatistics . extract f
+
 weeklyStats :: Extractor -> [MonthStmt] -> [Statistics]
 weeklyStats e d = map ((\f -> getStats f d) . filterByMonth) [first, second, third, forth]
     where filterByMonth m = Extractor (\w -> catMaybes [m w]) allDaysF allTemperaturesF `mappend` e
