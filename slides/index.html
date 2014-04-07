@@ -35,106 +35,122 @@
         <div class="reveal">
 
             <div class="slides">
-                <section data-markdown>
-                    <script type="text/template">
-                        ## Coding Dojo TDD/Immutabilité
+                <section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            ## Coding Dojo TDD/Immutabilité
 
-                        Lyon, 10/04/14 / [@gautier_difolco](https://twitter.com/gautier_difolco)
-                    </script>
+                            Lyon, 10/04/14 / [@gautier_difolco](https://twitter.com/gautier_difolco)
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            ![TDD](tdd.png)
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            ![Immutabilité](immutability.jpg)
+                        </script>
+                    </section>
                 </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        ![TDD](tdd.png)
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        ![Immutabilité](immutability.jpg)
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        # Sujet
+                <section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            # Sujet
 
-                        Relevés de mesure d'**un** thermomètre aux États-Unis.
-                    </script>
+                            Relevés de mesure d'**un** thermomètre aux États-Unis.
+                        </script>
+                    </section>
                 </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        Les températures sont envoyées soit en °C soit en °F, la précision est d'une décimale.
+                <section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            Les températures sont envoyées soit en °C soit en °F, la précision est d'une décimale.
 
-                        * T(°C) = (T(°F) - 32)/1.8
-                        * T(°F) = T(°C) * 1.8 + 32 
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        Les températures sont récoltées matin et soir et sont envoyées
-                        par ordre de récolte, en commençant par un matin.
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        On veut les statistiques suivantes pour toutes les valeurs reçues :
+                            * T(°C) = (T(°F) - 32)/1.8
+                            * T(°F) = T(°C) * 1.8 + 32 
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            Les températures sont récoltées matin et soir et sont envoyées
+                            par ordre de récolte, en commençant par un matin.
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            On veut les statistiques suivantes pour toutes les valeurs reçues :
 
-                         * Minimum
-                         * Maximum
-                         * Moyenne
+                             * Minimum
+                             * Maximum
+                             * Moyenne
 
-                        On veut le résultat en °F uniquement si toutes les valeurs sont en °F.
-                    </script>
+                            On veut ces statistiques en °C, en faisant attention de
+                            n'additioner les °C et les °F qu'une seule fois
+                            (quand la somme distincte des deux types de mesures est terminée)
+                        </script>
+                    </section>
                 </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        On veut ces statistiques uniquement pour les mesures du matin ou uniquement pour les mesures l'après midi.
-                    </script>
+                <section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            On veut ces statistiques uniquement pour les mesures du matin ou uniquement pour les mesures l'après midi
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            On veut ces statistiques uniquement pour les mesures faites les lundi
+                            (le relevé des mesures commence toujours un lundi)
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            On veut ces statistiques uniquement pour les mesures faites les semaines paires
+                            (le relevé des mesures commence toujours lors de la première semaine d'un mois)
+                        </script>
+                    </section>
                 </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        On veut ces statistiques uniquement pour les mesures faites les lundi.
-                    </script>
+                <section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            On veut ces statistiques par semaine
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            On veut ces statistiques par mois
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            On veut ces statistiques par mois pour les mesures faites les lundi matin des semaines paires
+                        </script>
+                    </section>
                 </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        On veut ces statistiques uniquement pour les mesures faites les semaines paires.
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        On veut ces statistiques par semaine.
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        On veut ces statistiques par mois.
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        On veut ces statistiques par mois pour les mesures faites les lundi matin des semaines paires.
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        # Notions vues
+                <section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            # Notions vues
 
-                        * TDD
-                        * Immutabilité
-                        * Value Objects
-                        * Monoids
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        # Conclusion
+                            * TDD
+                            * Immutabilité
+                            * Value Objects
+                            * Monoids
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            # Conclusion
 
-                        [https://github.com/blackheaven/dojo_14-04-10](https://github.com/blackheaven/dojo_14-04-10)
-                    </script>
-                </section>
-                <section data-markdown>
-                    <script type="text/template">
-                        ![Return on Time Invested](roti.png)
-                    </script>
+                            [https://github.com/blackheaven/dojo_14-04-10](https://github.com/blackheaven/dojo_14-04-10)
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            ![Return on Time Invested](roti.png)
+                        </script>
+                    </section>
                 </section>
             </div>
 
